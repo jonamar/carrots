@@ -2,6 +2,7 @@ import PyPDF2
 import re
 import os
 import glob
+import argparse
 from datetime import datetime
 
 def extract_carrots_kg(pdf_path):
@@ -65,10 +66,16 @@ def get_all_pdfs(directory):
     return pdf_files
 
 if __name__ == "__main__":
-    import sys
+    # Set up argument parser
+    parser = argparse.ArgumentParser(description='Calculate total carrots ordered from Lufa Farms')
+    parser.add_argument('pdf_dir', nargs='?', default='pdfs', help='Directory containing PDF invoices or a single PDF file')
+    parser.add_argument('--avg-carrot-weight', type=float, default=100.0, 
+                        help='Average weight of a single carrot in grams (default: 100g)')
+    args = parser.parse_args()
     
-    # Default to "pdfs" directory if no path provided
-    pdf_dir = sys.argv[1] if len(sys.argv) > 1 else "pdfs"
+    # Get PDF directory from arguments
+    pdf_dir = args.pdf_dir
+    avg_carrot_weight = args.avg_carrot_weight
     
     # Ensure pdf_dir is a directory, otherwise use the file itself
     if os.path.isfile(pdf_dir):
@@ -82,12 +89,22 @@ if __name__ == "__main__":
     
     results = []
     total_kg = 0
+    oldest_date = None
     
     # Process each PDF file
     for pdf_file in pdf_files:
         result = extract_carrots_kg(pdf_file)
         results.append(result)
         total_kg += result["kg"]
+        
+        # Track oldest order date
+        if result["order_date"] != "Unknown" and result["order_date"] != "Error":
+            try:
+                order_date = datetime.strptime(result["order_date"], "%Y-%m-%d")
+                if oldest_date is None or order_date < oldest_date:
+                    oldest_date = order_date
+            except ValueError:
+                pass
     
     # Print individual results
     print(f"{'File':<30} {'Order #':<15} {'Date':<12} {'KG':<10}")
@@ -95,6 +112,18 @@ if __name__ == "__main__":
     for result in results:
         print(f"{result['file']:<30} {result['order_number']:<15} {result['order_date']:<12} {result['kg']:.3f}")
     
-    # Print total
+    # Calculate KPIs
+    total_weight_kg = total_kg
+    total_weight_g = total_weight_kg * 1000
+    estimated_carrots = total_weight_g / avg_carrot_weight
+    carrots_per_order = estimated_carrots / len(results) if results else 0
+    oldest_date_str = oldest_date.strftime("%Y-%m-%d") if oldest_date else "Unknown"
+    
+    # Print KPIs
     print("-" * 70)
-    print(f"Total KG of carrots purchased across all {len(results)} PDFs: {total_kg:.3f} kg")
+    print(f"KPI SUMMARY:")
+    print(f"Total carrot weight: {total_weight_kg:.3f} kg")
+    print(f"Estimated total carrots: {estimated_carrots:.1f} carrots (based on {avg_carrot_weight}g per carrot)")
+    print(f"CPO (Carrots Per Order): {carrots_per_order:.1f} carrots")
+    print(f"Oldest order date: {oldest_date_str}")
+    print("-" * 70)
