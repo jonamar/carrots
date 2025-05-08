@@ -90,6 +90,7 @@ if __name__ == "__main__":
     results = []
     total_kg = 0
     oldest_date = None
+    months_data = {}  # To track carrots per month
     
     # Process each PDF file
     for pdf_file in pdf_files:
@@ -103,6 +104,13 @@ if __name__ == "__main__":
                 order_date = datetime.strptime(result["order_date"], "%Y-%m-%d")
                 if oldest_date is None or order_date < oldest_date:
                     oldest_date = order_date
+                
+                # Track carrots per month
+                month_key = order_date.strftime("%Y-%m")  # Format: YYYY-MM
+                if month_key not in months_data:
+                    months_data[month_key] = {"kg": 0, "orders": 0}
+                months_data[month_key]["kg"] += result["kg"]
+                months_data[month_key]["orders"] += 1
             except ValueError:
                 pass
     
@@ -119,11 +127,37 @@ if __name__ == "__main__":
     carrots_per_order = estimated_carrots / len(results) if results else 0
     oldest_date_str = oldest_date.strftime("%Y-%m-%d") if oldest_date else "Unknown"
     
+    # Calculate month with most carrots and average orders per month
+    month_most_carrots = None
+    max_kg = 0
+    total_months = len(months_data)
+    total_orders = sum(data["orders"] for data in months_data.values())
+    avg_orders_per_month = total_orders / total_months if total_months > 0 else 0
+    
+    for month, data in months_data.items():
+        if data["kg"] > max_kg:
+            max_kg = data["kg"]
+            month_most_carrots = month
+    
+    # Calculate total carrots for the top month
+    top_month_carrots = 0
+    if month_most_carrots and max_kg > 0:
+        top_month_carrots = (max_kg * 1000) / avg_carrot_weight
+    
+    # Format month for display
+    if month_most_carrots:
+        month_date = datetime.strptime(month_most_carrots, "%Y-%m")
+        month_display = month_date.strftime("%B %Y")
+    else:
+        month_display = "Unknown"
+    
     # Print KPIs
     print("-" * 70)
     print(f"KPI SUMMARY:")
-    print(f"Total carrot weight: {total_weight_kg:.3f} kg")
-    print(f"Estimated total carrots: {estimated_carrots:.1f} carrots (based on {avg_carrot_weight}g per carrot)")
+    print(f"Total weight of all carrots ordered: {total_weight_kg:.3f} kg")
+    print(f"Estimated total number of carrots ordered: {estimated_carrots:.1f} carrots (based on {avg_carrot_weight}g per carrot)")
     print(f"CPO (Carrots Per Order): {carrots_per_order:.1f} carrots")
     print(f"Oldest order date: {oldest_date_str}")
+    print(f"Average orders per month: {avg_orders_per_month:.1f}")
+    print(f"Carrot Top (Month): {month_display} ({max_kg:.3f} kg, {top_month_carrots:.1f} carrots)")
     print("-" * 70)
