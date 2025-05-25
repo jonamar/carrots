@@ -1,6 +1,6 @@
 # Carrots
 
-A tool designed to calculate the total kilograms of carrots ordered from Lufa Farms over time. 
+Welcome Lufavores! I made us a playful tool designed to calculate the total kilograms of carrots ordered from Lufa Farms over time. 
 
 ## Overview
 
