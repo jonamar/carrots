@@ -80,11 +80,15 @@ def extract_order_data(pdf_path):
             if potential_totals:
                 total_cost = max(potential_totals)  # Assume the largest is the total
         
+        # Subtract $6 delivery fee from the total cost
+        total_cost_minus_delivery = max(0, total_cost - 6.00)  # Ensure we don't go below 0
+        
         return {
             "file": os.path.basename(pdf_path),
             "order_number": order_number,
             "order_date": order_date,
-            "total_cost": total_cost
+            "total_cost": total_cost_minus_delivery,
+            "original_total": total_cost
         }
     except Exception as e:
         print(f"Error processing {pdf_path}: {e}")
@@ -169,11 +173,13 @@ if __name__ == "__main__":
     
     # Print summary statistics
     print("\n" + "="*70)
-    print("DELIVERY COST ANALYSIS SUMMARY:")
-    print("="*70)
+    print("DELIVERY COST ANALYSIS SUMMARY (AFTER SUBTRACTING $6 DELIVERY FEE PER ORDER):")
+    print("="*85)
+    original_total = sum(r.get('original_total', r['total_cost'] + 6.00) for r in results)  # Reconstruct original total for reference
     print(f"Total number of orders analyzed: {total_orders}")
-    print(f"Total cost of all orders: ${total_cost:.2f}")
-    print(f"Average cost per delivery: ${avg_cost_per_delivery:.2f}")
+    print(f"Original total cost (including delivery): ${original_total:.2f}")
+    print(f"Total cost after removing $6 delivery fee per order: ${total_cost:.2f}")
+    print(f"Average cost per delivery (after removing $6 fee): ${avg_cost_per_delivery:.2f}")
     print(f"Average cost per basket (assuming {baskets_per_order} baskets per order): ${avg_cost_per_basket:.2f}")
     
     # Print monthly statistics if available
